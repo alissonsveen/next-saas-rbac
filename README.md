@@ -1,135 +1,108 @@
-# Turborepo starter
+# Next SaaS + RBAC (Monorepo)
 
-This Turborepo starter is maintained by the Turborepo core team.
+SaaS multi-tenant com autenticação e autorização RBAC. Monorepo com `pnpm workspaces` e `Turborepo`, cobrindo API (Fastify + Prisma) e Web (Next.js + React Query + Tailwind).
 
-## Using this example
+## Stack principal
 
-Run the following command:
+- Backend (API):
+  - Fastify 5, `fastify-type-provider-zod`, `@fastify/jwt`, `@fastify/swagger`/`swagger-ui`
+  - Prisma 6 (PostgreSQL)
+  - Validação com Zod 4
+- Frontend (Web):
+  - Next.js 15 (App Router), React 19, `@tanstack/react-query` v5
+  - Tailwind CSS v4, Radix UI, `lucide-react`, theming com `next-themes`
+  - HTTP com `ky`
+- Monorepo/Tooling:
+  - `pnpm`, Turborepo, TypeScript 5
+  - Env type-safe com `@t3-oss/env-nextjs`
+  - ESLint/Prettier compartilhados
 
-```sh
-npx create-turbo@latest
+## Padrões e arquitetura
+
+- Organização em monorepo com pacotes compartilhados: `@saas/auth`, `@saas/env`, configs de ESLint/TS.
+- RBAC centralizado em `packages/auth` (roles, permissions, subjects) e aplicado na API e Web.
+- Schemas Zod em borda de requisição e tipagem end-to-end via `fastify-type-provider-zod`.
+- Camada HTTP da API com middlewares (`auth`), rotas coesas e tratador de erros unificado.
+- Prisma como ORM, migrações versionadas em `apps/api/prisma/migrations`.
+- Front-end com App Router, componentes de UI reutilizáveis e dados via React Query.
+- Variáveis de ambiente validadas em build/runtime (`packages/env`).
+
+## Funcionalidades (essenciais)
+
+- Autenticação: e‑mail/senha, GitHub OAuth, recuperação de senha, cadastro.
+- Organizações: criar, listar, atualizar, deletar e transferir ownership.
+- Convites: convidar, aceitar, revogar.
+- Membros: listar, atualizar cargo e sair da organização.
+- Projetos: CRUD dentro da organização.
+- Billing: cálculo por projeto/membro e visão de cobrança.
+- RBAC: Owner, Administrator, Member, Billing, Anonymous (regras condicionais para operações sensíveis).
+
+## Requisitos
+
+- Node.js >= 18
+- pnpm >= 9
+- Docker (para Postgres) — ou PostgreSQL local
+
+## Instalação e configuração
+
+1. Clone e instale dependências
+
+```bash
+pnpm install
 ```
 
-## What's inside?
+2. Suba o banco de dados (Docker Compose)
 
-This Turborepo includes the following packages/apps:
-
-### Apps and Packages
-
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build
-yarn dlx turbo build
-pnpm exec turbo build
+```bash
+docker compose up -d
 ```
 
-You can build a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
+3. Crie um arquivo `.env` na raiz com as variáveis abaixo
 
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build --filter=docs
+```bash
+# API
+SERVER_PORT=3333
+DATABASE_URL="postgresql://docker:docker@localhost:5432/next-saas?schema=public"
+JWT_SECRET="sua_chave_jwt_segura"
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build --filter=docs
-yarn exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-```
+# OAuth (GitHub)
+GITHUB_OAUTH_CLIENT_ID=
+GITHUB_OAUTH_CLIENT_SECRET=
+GITHUB_OAUTH_CLIENT_REDIRECT_URI="http://localhost:3333/sessions/github/callback"
 
-### Develop
-
-To develop all apps and packages, run the following command:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev
-yarn exec turbo dev
-pnpm exec turbo dev
+# Web
+NEXT_PUBLIC_API_URL="http://localhost:3333"
 ```
 
-You can develop a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
+4. Aplique migrações (Prisma)
 
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev --filter=web
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev --filter=web
-yarn exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
+```bash
+pnpm --filter @saas\api db:migrate
 ```
 
-### Remote Caching
+5. Ambiente de desenvolvimento (monorepo)
 
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo login
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo login
-yarn exec turbo login
-pnpm exec turbo login
+```bash
+pnpm dev
 ```
 
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
+Apps individuais:
 
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
+```bash
+# API
+pnpm --filter @saas\api dev
 
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo link
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo link
-yarn exec turbo link
-pnpm exec turbo link
+# Web
+pnpm --filter @saas\web dev
 ```
 
-## Useful Links
+## Scripts úteis
 
-Learn more about the power of Turborepo:
+- Build monorepo: `pnpm build`
+- Lint: `pnpm lint`
+- Studio Prisma: `pnpm --filter @saas\\api db:studio`
 
-- [Tasks](https://turborepo.com/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.com/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.com/docs/reference/configuration)
-- [CLI Usage](https://turborepo.com/docs/reference/command-line-reference)
+## Observações
+
+- A API expõe documentação Swagger UI (habilitada via `@fastify/swagger-ui`). Verifique a URL nos logs ao iniciar a API.
+- Garanta que `NEXT_PUBLIC_API_URL` aponte para a porta real da API (ex: `http://localhost:3333`).
