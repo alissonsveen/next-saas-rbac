@@ -14,13 +14,11 @@ import { redirect } from 'next/navigation'
 dayjs.extend(relativeTime)
 
 interface InvitePageProps {
-  params: {
-    id: string
-  }
+  params: Promise<{ id: string }>
 }
 
 export default async function InvitePage({ params }: InvitePageProps) {
-  const inviteId = params.id
+  const { id: inviteId } = await params
 
   const { invite } = await getInvite(inviteId)
   const isUserAuthenticated = await isAuthenticated()
