@@ -15,10 +15,16 @@ import { useFormState } from '@/hooks/use-form-state'
 
 import { signInWithGithub } from '../actions'
 import { signInWithEmailAndPassword } from './actions'
+import { useEffect, useState } from 'react'
 
 export function SignInForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const [emailValue, setEmailValue] = useState('')
+
+  useEffect(() => {
+    setEmailValue(searchParams.get('email') ?? '')
+  }, [searchParams])
 
   const [{ errors, message, success }, handleSubmit, isPending] = useFormState(
     signInWithEmailAndPassword,
@@ -46,7 +52,7 @@ export function SignInForm() {
             name="email"
             type="email"
             id="email"
-            defaultValue={searchParams.get('email') ?? ''}
+            defaultValue={emailValue}
           />
 
           {errors?.email && (
