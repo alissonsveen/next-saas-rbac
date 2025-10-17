@@ -42,6 +42,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(redirectUrl)
   } catch (err) {
     console.error('Auth callback error:', err)
-    return NextResponse.json({ message: 'Auth error eeeeeee' }, { status: 500 })
+    return NextResponse.json({ message: 'Auth error' }, { status: 500 })
   }
 }
